@@ -1,6 +1,8 @@
 import socket
 import io
 import sys
+import os
+import signal
 from datetime import datetime
 
 
@@ -14,7 +16,7 @@ class WSGIService:
     # socket允许重用地址选项
     socket_allow_reuse = socket.SO_REUSEADDR
     # 允许挂起的请求数目
-    request_queue_size = 1
+    request_queue_size = 5
     # 一次读socket缓存区的最大值（bit?字节）
     read_limit = 1024
     # 版本号
@@ -37,10 +39,23 @@ class WSGIService:
         self._socket.bind(service_address)
         # 监听socket, 是否有连接.
         self._socket.listen(self.request_queue_size)
+        signal.signal(signal.SIGCHLD, self.handle_pid)
         host, self.server_port = self._socket.getsockname()[:2]
         self.server_name = socket.getfqdn(host)
         # 返回通过框架设置的http报文头部信息
         self.header_set = []
+
+    def handle_pid(*args, **kwargs):
+        while True:
+            try:
+                pid, status = os.waitpid(
+                    -1,
+                    os.WNOHANG
+                )
+            except OSError:
+                return
+            if pid == 0:
+                return
 
     def set_app(self, application):
         self.application = application
@@ -48,7 +63,12 @@ class WSGIService:
     def start_service(self):
         while True:
             self._connection, address = self._socket.accept()
-            self.handle_one_request()
+            pid = os.fork()
+            if pid == 0:
+                self._socket.close()
+                self.handle_one_request()
+            else:
+                self._connection.close()
 
     def handle_one_request(self):
         self.request_data = bytes.decode(self._connection.recv(self.read_limit))
@@ -72,6 +92,7 @@ class WSGIService:
             self._connection.sendall(str.encode(response))
         finally:
             self._connection.close()
+            os._exit(0)
 
     @staticmethod
     def format_like_curl(template, lines):
