@@ -119,6 +119,7 @@ def make_server(server_address, application):
     server.set_app(application)
     return server
 
+
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         sys.exit('Provide a WSGI application as module: callbale')
