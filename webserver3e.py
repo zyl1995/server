@@ -1,11 +1,19 @@
 import socket
 import time
 import os
+import signal
 
 
 SERVER_ADDRESS = (HOST, PORT) = '', 8888
-REQUEST_QUEUE_SIZE = 5
+REQUEST_QUEUE_SIZE = 1
 
+def handle_pid(signum, frame):
+    pid, status = os.wait()
+    print(
+        'child {pid} terminated with status{status}'.format(
+            pid=pid, status=status
+        )
+    )
 
 def handle_request(connection):
     request = connection.recv(1014)
@@ -15,6 +23,7 @@ HTTP/1.1 200 OK
 Hello World!
 """
     connection.sendall(response)
+    time.sleep(3)
 
 
 def start_server():
@@ -23,6 +32,8 @@ def start_server():
     _socket.bind(SERVER_ADDRESS)
     _socket.listen(REQUEST_QUEUE_SIZE)
     print('Serving Http on port {0}'.format(PORT))
+
+    signal.signal(signal.SIGCHLD, handle_pid)
 
     while True:
         connection, address = _socket.accept()

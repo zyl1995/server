@@ -15,6 +15,7 @@ HTTP/1.1 200 OK
 Hello World!
 """
     connection.sendall(response)
+    time.sleep(60)
 
 
 def start_server():
@@ -26,6 +27,7 @@ def start_server():
 
     while True:
         connection, address = _socket.accept()
+        print(address)
         pid = os.fork()
         if pid == 0:
             _socket.close()
@@ -33,7 +35,8 @@ def start_server():
             connection.close()
             os._exit(0)
         else:
-            connection.close()
+            pass
+            # connection.close()
 
 
 if __name__ == '__main__':
