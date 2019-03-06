@@ -23,7 +23,6 @@ HTTP/1.1 200 OK
 Hello World!
 """
     connection.sendall(response)
-    time.sleep(3)
 
 
 def start_server():
